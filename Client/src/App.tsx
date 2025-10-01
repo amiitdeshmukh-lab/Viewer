@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, CSSProperties } from 'react';
 import ForgeViewer from './components/ForgeViewer';
 import ModelUpload from './components/ModelUpload';
 import DragDropUpload from './components/DragDropUpload';
+//  import BoundingBoxUtils from './components/BoundingBoxUtils';
 
 interface Model {
     urn: string;

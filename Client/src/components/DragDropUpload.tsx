@@ -1,164 +1,221 @@
-import React, { useState, useRef, CSSProperties } from 'react';
+import React, { useState, useRef } from "react";
+import {
+  Box,
+  Paper,
+  Typography,
+  Button,
+  LinearProgress,
+  Card,
+  CardMedia,
+  CardContent,
+} from "@mui/material";
+import { motion } from "framer-motion";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 
 interface DragDropUploadProps {
-    onUpload: (file: File, entrypoint?: string) => void;
+  onUpload: (file: File, entrypoint?: string) => void;
 }
 
-
-const containerStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    width: '100%',
-    backgroundColor: '#f8f9fa',
-    position: 'relative'
-};
-
-const dropZoneStyle: CSSProperties = {
-    border: '3px dashed #007bff',
-    borderRadius: '12px',
-    padding: '4rem 2rem',
-    textAlign: 'center',
-    backgroundColor: '#fff',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-    minWidth: '400px',
-    maxWidth: '600px',
-    width: '80%'
-};
-
-const dropZoneActiveStyle: CSSProperties = {
-    ...dropZoneStyle,
-    borderColor: '#28a745',
-    backgroundColor: '#f8fff9',
-    transform: 'scale(1.02)'
-};
-
-const iconStyle: CSSProperties = {
-    fontSize: '4rem',
-    color: '#007bff',
-    marginBottom: '1rem'
-};
-
-const titleStyle: CSSProperties = {
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    color: '#343a40',
-    marginBottom: '0.5rem'
-};
-
-const subtitleStyle: CSSProperties = {
-    fontSize: '1rem',
-    color: '#6c757d',
-    marginBottom: '2rem'
-};
-
-const supportedFormatsStyle: CSSProperties = {
-    fontSize: '0.875rem',
-    color: '#6c757d',
-    fontStyle: 'italic'
-};
-
-const uploadButtonStyle: CSSProperties = {
-    padding: '0.8rem 2rem',
-    fontSize: '1rem',
-    fontWeight: '500',
-    color: '#fff',
-    backgroundColor: '#007bff',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    marginTop: '1rem',
-    transition: 'background-color 0.2s ease-in-out',
-};
-
 const DragDropUpload: React.FC<DragDropUploadProps> = ({ onUpload }) => {
-    const [isDragOver, setIsDragOver] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(true);
-    };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
 
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(false);
-    };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsDragOver(false);
-        
-        const files = Array.from(e.dataTransfer.files);
-        if (files.length > 0) {
-            handleFileUpload(files[0]);
-        }
-    };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
 
-    const handleFileUpload = (file: File) => {
-        if (file.name.endsWith('.zip')) {
-            const entrypoint = window.prompt('Please enter the filename of the main design inside the archive.');
-            if (!entrypoint) return;
-            onUpload(file, entrypoint);
-        } else {
-            onUpload(file);
-        }
-    };
+  const simulateProgress = () => {
+    setUploadProgress(0);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 15;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+      }
+      setUploadProgress(progress);
+    }, 200);
+  };
 
-    const handleButtonClick = () => {
-        inputRef.current?.click();
-    };
+  const handleFileUpload = (file: File) => {
+    setFileName(file.name);
+    setFileSize((file.size / 1024 / 1024).toFixed(2) + " MB");
 
-    const handleFileChange = () => {
-        const file = inputRef.current?.files?.[0];
-        if (!file) return;
-        handleFileUpload(file);
-        
-        if (inputRef.current) {
-            inputRef.current.value = ''; // reset
-        }
-    };
+    if (file.type.startsWith("image/")) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(null);
+    }
 
-    return (
-        <div style={containerStyle}>
-            <div
-                style={isDragOver ? dropZoneActiveStyle : dropZoneStyle}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={handleButtonClick}
+    if (file.name.endsWith(".zip")) {
+      const entrypoint = window.prompt(
+        "Enter the main design filename inside the archive:"
+      );
+      if (!entrypoint) return;
+      onUpload(file, entrypoint);
+    } else {
+      onUpload(file);
+    }
+
+    simulateProgress();
+  };
+
+  const handleButtonClick = () => {
+    inputRef.current?.click();
+  };
+
+  const handleFileChange = () => {
+    const file = inputRef.current?.files?.[0];
+    if (!file) return;
+    handleFileUpload(file);
+
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  return (
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      sx={{
+        width: "100%",
+        height: "100%",
+        p: 2,
+        background: "linear-gradient(145deg, #f0f4ff, #ffffff)",
+      }}
+    >
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        style={{ width: "80%", maxWidth: 600 }}
+      >
+        <Paper
+          elevation={isDragOver ? 8 : 4}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleButtonClick}
+          sx={{
+            border: isDragOver ? "3px dashed #28a745" : "3px dashed #1976d2",
+            borderRadius: 4,
+            p: 6,
+            textAlign: "center",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            background: isDragOver
+              ? "linear-gradient(135deg, #e8fdf1, #ffffff)"
+              : "#fff",
+          }}
+        >
+          <CloudUploadIcon
+            sx={{
+              fontSize: 70,
+              mb: 2,
+              color: isDragOver ? "success.main" : "primary.main",
+              transform: isDragOver ? "rotate(15deg) scale(1.2)" : "none",
+              transition: "0.3s",
+            }}
+          />
+
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            {isDragOver ? "Drop your file here" : "Upload 3D Model"}
+          </Typography>
+          <Typography color="text.secondary" gutterBottom>
+            Drag & drop your model here, or click to browse
+          </Typography>
+
+          {preview && (
+            <Card
+              sx={{
+                maxWidth: 200,
+                mx: "auto",
+                my: 2,
+                borderRadius: 3,
+                boxShadow: 4,
+              }}
             >
-                <div style={iconStyle}>📁</div>
-                <h2 style={titleStyle}>
-                    {isDragOver ? 'Drop your model file here' : 'Upload 3D Model'}
-                </h2>
-                <p style={subtitleStyle}>
-                    Drag and drop your model file here, or click to browse
-                </p>
-                <button 
-                    style={uploadButtonStyle}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
-                >
-                    Choose File
-                </button>
-                <p style={supportedFormatsStyle}>
-                    Supported formats: .dwg, .step, .iges, .sat, .ipt, .iam, .zip and more
-                </p>
-            </div>
-            
-            <input
-                type="file"
-                ref={inputRef}
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-            />
-        </div>
-    );
+              <CardMedia
+                component="img"
+                height="140"
+                image={preview}
+                alt="preview"
+              />
+              <CardContent>
+                <Typography variant="body2" fontWeight="bold">
+                  {fileName}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {fileSize}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          <Button
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            onClick={handleButtonClick}
+            sx={{ mt: 2, borderRadius: 3, px: 4, py: 1.5 }}
+          >
+            Choose File
+          </Button>
+
+          {uploadProgress > 0 && (
+            <Box sx={{ width: "80%", mt: 3, mx: "auto" }}>
+              <LinearProgress
+                variant="determinate"
+                value={uploadProgress}
+                color="primary"
+                sx={{ borderRadius: 2, height: 10 }}
+              />
+              <Typography
+                variant="body2"
+                align="center"
+                sx={{ mt: 1, fontWeight: 500 }}
+              >
+                {Math.round(uploadProgress)}%
+              </Typography>
+            </Box>
+          )}
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mt: 3, fontStyle: "italic" }}
+          >
+            Supported formats: .dwg, .step, .iges, .sat, .ipt, .iam, .zip
+          </Typography>
+        </Paper>
+      </motion.div>
+
+      <input
+        type="file"
+        ref={inputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+      />
+    </Box>
+  );
 };
 
 export default DragDropUpload;
